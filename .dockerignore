@@ -2,3 +2,10 @@ node_modules/
 dist/
 .git/
 .env
+.env.*
+*.log
+.DS_Store
+.gitignore
+README.md
+coverage/
+.vite/

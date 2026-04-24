@@ -9,39 +9,41 @@ const AMENITY_OPTIONS = [
   { id: 'pets', label: '🐾 Pets Allowed' }
 ];
 
-export default function ListingModal({ 
-  isListingModalOpen, 
-  setIsListingModalOpen, 
-  handleAddProperty, 
-  selectedAmenities, 
+export default function ListingModal({
+  isListingModalOpen,
+  setIsListingModalOpen,
+  handleAddProperty,
+  selectedAmenities,
   toggleAmenity,
   showToast
 }) {
-  const [isEstimating, setIsEstimating] = useState(false);
-  const [estimatedRent, setEstimatedRent] = useState('');
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [generatedDescription, setGeneratedDescription] = useState('');
+
+  // Controlled field state for the AI validation check
+  const [titleVal, setTitleVal] = useState('');
+  const [locationVal, setLocationVal] = useState('');
+  const [propertyType, setPropertyType] = useState('Apartment');
 
   if (!isListingModalOpen) return null;
 
-  const handleEstimateRent = async (e) => {
-    e.preventDefault();
-    const form = e.target.closest('form');
-    const location = form.location.value;
-    const propertyType = form.property_type.value;
-    
-    if (!location) {
-      return showToast('Please enter a location first to estimate rent.', 'warning');
-    }
+  // Button is only active when the three required fields are filled
+  const canGenerate = titleVal.trim().length > 0 && locationVal.trim().length > 0;
 
-    setIsEstimating(true);
-    showToast('AI is analyzing market data...', 'success');
+  const handleGenerateDescription = async () => {
+    if (!canGenerate) return;
+
+    setIsGenerating(true);
+    showToast('✨ AI is writing your description...', 'success');
 
     try {
       const aiApiUrl = import.meta.env.VITE_AI_API_URL || 'http://localhost:8005/api/ai';
-      const response = await fetch(`${aiApiUrl}/estimate`, {
+      const response = await fetch(`${aiApiUrl}/describe`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          location,
+          title: titleVal,
+          location: locationVal,
           property_type: propertyType,
           amenities: selectedAmenities
         })
@@ -49,27 +51,43 @@ export default function ListingModal({
 
       if (response.ok) {
         const data = await response.json();
-        setEstimatedRent(data.estimated_rent);
-        showToast('AI estimated the optimal rent!', 'success');
+        setGeneratedDescription(data.description);
+        showToast('Description generated!', 'success');
+      } else if (response.status === 429) {
+        showToast('AI quota exceeded. Please try again later.', 'error');
       } else {
-        showToast('Failed to get AI estimation.', 'error');
+        showToast('AI description failed. Try again.', 'error');
       }
-    } catch (err) {
+    } catch {
       showToast('AI Service is unavailable.', 'error');
     } finally {
-      setIsEstimating(false);
+      setIsGenerating(false);
     }
   };
 
+  const handleClose = () => {
+    setIsListingModalOpen(false);
+    setTitleVal('');
+    setLocationVal('');
+    setPropertyType('Apartment');
+    setGeneratedDescription('');
+  };
+
   return (
-    <div className="modal-overlay" onClick={() => setIsListingModalOpen(false)}>
+    <div className="modal-overlay" onClick={handleClose}>
       <div className="modal-content large" onClick={e => e.stopPropagation()}>
         <div className="modal-header"><h2>List a New Property</h2></div>
         <form onSubmit={handleAddProperty}>
           <div style={{ display: 'flex', gap: '1rem' }}>
             <div className="form-group" style={{ flex: 1 }}>
               <label>Property Type</label>
-              <select name="property_type" className="form-control" required>
+              <select
+                name="property_type"
+                className="form-control"
+                required
+                value={propertyType}
+                onChange={e => setPropertyType(e.target.value)}
+              >
                 <option value="Apartment">Apartment</option>
                 <option value="House">House</option>
                 <option value="Villa">Villa</option>
@@ -78,25 +96,37 @@ export default function ListingModal({
             </div>
             <div className="form-group" style={{ flex: 2 }}>
               <label>Title</label>
-              <input type="text" name="title" className="form-control" required placeholder="Cozy Downtown Unit" />
+              <input
+                type="text"
+                name="title"
+                className="form-control"
+                required
+                placeholder="Cozy Downtown Unit"
+                value={titleVal}
+                onChange={e => setTitleVal(e.target.value)}
+              />
             </div>
           </div>
-          <div className="form-group">
-            <label>Description</label>
-            <textarea name="description" className="form-control" required rows="4" placeholder="Describe the amazing features..."></textarea>
-          </div>
-          
+
           <div className="form-group">
             <label>Location</label>
-            <input type="text" name="location" className="form-control" required placeholder="City, State" />
+            <input
+              type="text"
+              name="location"
+              className="form-control"
+              required
+              placeholder="City, State"
+              value={locationVal}
+              onChange={e => setLocationVal(e.target.value)}
+            />
           </div>
 
           <div className="form-group">
             <label>Select Amenities</label>
             <div className="amenities-grid">
               {AMENITY_OPTIONS.map(a => (
-                <div 
-                  key={a.id} 
+                <div
+                  key={a.id}
                   className={`amenity-badge ${selectedAmenities.includes(a.label) ? 'selected' : ''}`}
                   onClick={() => toggleAmenity(a.label)}
                 >
@@ -107,21 +137,62 @@ export default function ListingModal({
           </div>
 
           <div className="form-group">
-            <label>Monthly Rent ($)</label>
-            <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
-              <input type="number" name="rent_amount" className="form-control" required min="1" defaultValue={estimatedRent} />
-              <button type="button" onClick={handleEstimateRent} disabled={isEstimating} className="btn" style={{ background: 'linear-gradient(to right, #8B5CF6, #6366F1)', color: 'white', whiteSpace: 'nowrap', fontWeight: 'bold' }}>
-                {isEstimating ? 'Estimating...' : '✨ Estimate Rent with AI'}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+              <label style={{ margin: 0 }}>Description</label>
+              <button
+                type="button"
+                onClick={handleGenerateDescription}
+                disabled={!canGenerate || isGenerating}
+                title={!canGenerate ? 'Fill in Title and Location first to use AI' : 'Generate a description with AI'}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.4rem',
+                  padding: '0.35rem 0.85rem',
+                  fontSize: '0.8rem',
+                  fontWeight: '700',
+                  border: 'none',
+                  borderRadius: '999px',
+                  cursor: canGenerate && !isGenerating ? 'pointer' : 'not-allowed',
+                  background: canGenerate
+                    ? 'linear-gradient(to right, #8B5CF6, #6366F1)'
+                    : '#E5E7EB',
+                  color: canGenerate ? 'white' : '#9CA3AF',
+                  transition: 'all 0.2s'
+                }}
+              >
+                {isGenerating ? '⏳ Writing...' : '✨ Write with AI'}
               </button>
             </div>
+            <textarea
+              name="description"
+              className="form-control"
+              required
+              rows="5"
+              placeholder={
+                canGenerate
+                  ? 'Click "✨ Write with AI" above to auto-generate, or write manually...'
+                  : 'Fill in Title and Location above to enable AI description generation...'
+              }
+              value={generatedDescription}
+              onChange={e => setGeneratedDescription(e.target.value)}
+            />
+          </div>
+
+          <div className="form-group">
+            <label>Monthly Rent ($)</label>
+            <input type="number" name="rent_amount" className="form-control" required min="1" />
           </div>
 
           <div className="form-group">
             <label>Image URL</label>
             <input type="url" name="image_url" className="form-control" placeholder="https://..." />
           </div>
+
           <div className="modal-actions">
-            <button type="button" className="btn btn-secondary" onClick={() => setIsListingModalOpen(false)} style={{marginRight: '0.5rem'}}>Cancel</button>
+            <button type="button" className="btn btn-secondary" onClick={handleClose} style={{ marginRight: '0.5rem' }}>
+              Cancel
+            </button>
             <button type="submit" className="btn btn-primary">Publish Listing</button>
           </div>
         </form>

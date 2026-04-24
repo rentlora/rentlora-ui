@@ -408,7 +408,9 @@ function App() {
               {user.role === 'landlord' && (
                 <button className={activeTab === 'properties' ? 'active' : ''} onClick={() => setActiveTab('properties')}>🏡 My Properties</button>
               )}
-              <button className={activeTab === 'bookings' ? 'active' : ''} onClick={() => setActiveTab('bookings')}>📅 My Bookings</button>
+              <button className={activeTab === 'bookings' ? 'active' : ''} onClick={() => setActiveTab('bookings')}>
+                {user.role === 'landlord' ? '📋 Booking Requests' : '📅 My Bookings'}
+              </button>
             </nav>
 
             <button className="logout-btn" onClick={handleLogout}>Log out</button>
@@ -416,7 +418,7 @@ function App() {
 
           <main className="main-content-auth">
             <header className="auth-header">
-              <h2>{activeTab === 'explore' ? 'Explore Properties' : activeTab === 'properties' ? 'My Properties' : 'My Bookings'}</h2>
+              <h2>{activeTab === 'explore' ? 'Explore Properties' : activeTab === 'properties' ? 'My Properties' : user.role === 'landlord' ? 'Booking Requests' : 'My Bookings'}</h2>
               {user.role === 'landlord' && activeTab === 'properties' && (
                 <button className="btn btn-primary" onClick={() => setIsListingModalOpen(true)}>+ List Property</button>
               )}
@@ -459,19 +461,19 @@ function App() {
               {activeTab === 'bookings' && (
                 <div className="fade-in">
                   <div className="overview-grid" style={{ marginBottom: '2rem' }}>
-                    <div className="stat-card"><h4>Total Bookings</h4><div className="stat-value">{dashboardBookings.length}</div></div>
+                      <div className="stat-card"><h4>{user.role === 'landlord' ? 'Tenant Requests' : 'Total Bookings'}</h4><div className="stat-value">{dashboardBookings.length}</div></div>
                   </div>
                   <div className="table-container">
                     {dashboardBookings.length === 0 ? (
-                      <div className="empty-state">📅 No bookings found.</div>
-                    ) : (
-                      <table className="data-table">
-                        <thead><tr><th>ID</th><th>Dates</th><th>Total</th><th>Status</th><th>Payment</th>{user.role === 'tenant' && <th>Action</th>}</tr></thead>
+                      <div className="empty-state">{user.role === 'landlord' ? '📋 No booking requests yet. Tenants will appear here once they book your properties.' : '📅 No bookings found. Browse properties to get started!'}</div>
+                    ) : (                       <table className="data-table">
+                        <thead><tr>{user.role === 'landlord' && <th>Property ID</th>}<th>ID</th><th>Dates</th><th>Total</th><th>Status</th><th>Payment</th>{user.role === 'tenant' && <th>Action</th>}</tr></thead>
                         <tbody>
                           {dashboardBookings.map(b => (
                             <tr key={b.id}>
+                              {user.role === 'landlord' && <td style={{fontSize:'0.75rem',color:'var(--text-muted)'}}>{(b.property_id||'').substring(0,8)}...</td>}
                               <td>{b.id.substring(0, 6)}...</td>
-                              <td>{b.start_date} to {b.end_date}</td>
+                              <td>{b.start_date} → {b.end_date}</td>
                               <td><strong>${b.total_rent_due}</strong></td>
                               <td><span className={`status-badge ${b.status === 'pending' ? 'warning' : 'success'}`}>{b.status}</span></td>
                               <td><span className={`status-badge ${b.payment_status === 'pending' ? 'warning' : 'success'}`}>{b.payment_status}</span></td>
