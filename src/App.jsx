@@ -49,12 +49,10 @@ function App() {
 
   const [toast, setToast] = useState({ visible: false, message: '', type: 'success' });
 
-  // All API calls use relative paths — KGateway handles routing.
-  // Never use absolute URLs here; they cause Mixed Content errors on HTTPS.
-  const userApiUrl     = '/api/users';
+  const userApiUrl = '/api/users';
   const propertyApiUrl = '/api/properties';
-  const bookingApiUrl  = '/api/bookings';
-  const paymentApiUrl  = '/api/payments';
+  const bookingApiUrl = '/api/bookings';
+  const paymentApiUrl = '/api/payments';
 
   const showToast = (message, type = 'success') => {
     setToast({ visible: true, message, type });
@@ -65,16 +63,16 @@ function App() {
   const authHeaders = (extra = {}) => ({
     'Content-Type': 'application/json',
     ...(sessionToken ? { 'x-session-token': sessionToken } : {}),
-    ...(user?.id     ? { 'x-user-id': user.id } : {}),
+    ...(user?.id ? { 'x-user-id': user.id } : {}),
     ...extra,
   });
 
   const fetchAllProperties = (search = searchQuery, price = maxPrice) => {
     setLoading(true);
     const params = new URLSearchParams();
-    if (search)  params.append('search', search);
-    if (price)   params.append('max_price', price);
-    fetch(`${propertyApiUrl}?${params.toString()}`)
+    if (search) params.append('search', search);
+    if (price) params.append('max_price', price);
+    fetch(`${propertyApiUrl}/?${params.toString()}`)
       .then(res => res.json())
       .then(data => {
         setProperties(data && data.length > 0 ? data : MOCK_PROPERTIES);
@@ -98,14 +96,14 @@ function App() {
   // --- Auth ---
   const handleAuthSubmit = async (e) => {
     e.preventDefault();
-    const email    = e.target.email.value;
+    const email = e.target.email.value;
     const password = e.target.password.value;
-    const name     = authMode === 'register' ? e.target.name.value : null;
-    const role     = authMode === 'register' ? e.target.role.value : null;
+    const name = authMode === 'register' ? e.target.name.value : null;
+    const role = authMode === 'register' ? e.target.role.value : null;
 
     try {
       const endpoint = authMode === 'register' ? `${userApiUrl}/register` : `${userApiUrl}/login`;
-      const payload  = authMode === 'register' ? { name, email, password, role } : { email, password };
+      const payload = authMode === 'register' ? { name, email, password, role } : { email, password };
       const response = await fetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -118,7 +116,7 @@ function App() {
           setSessionToken(data.session_token);   // 🔐 store the token
         } else {
           // After register, auto-login
-          const loginRes  = await fetch(`${userApiUrl}/login`, {
+          const loginRes = await fetch(`${userApiUrl}/login`, {
             method: 'POST', headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ email, password })
           });
@@ -141,7 +139,7 @@ function App() {
           method: 'POST',
           headers: { 'x-user-id': user.id, 'x-session-token': sessionToken }
         });
-      } catch (_) {}
+      } catch (_) { }
     }
     setUser(null);
     setSessionToken(null);
@@ -245,15 +243,15 @@ function App() {
   const handleAddProperty = async (e) => {
     e.preventDefault();
     const propType = e.target.property_type.value;
-    const payload  = {
-      landlord_id:   user.id,
+    const payload = {
+      landlord_id: user.id,
       landlord_name: user.name,           // 🏷️ denormalised name
-      title:         `[${propType}] ${e.target.title.value}`,
-      description:   e.target.description.value,
-      location:      e.target.location.value,
-      rent_amount:   parseFloat(e.target.rent_amount.value),
-      amenities:     selectedAmenities,
-      images:        [e.target.image_url.value || 'https://images.unsplash.com/photo-1564013799919-ab600027ffc6?auto=format&fit=crop&w=800&q=80']
+      title: `[${propType}] ${e.target.title.value}`,
+      description: e.target.description.value,
+      location: e.target.location.value,
+      rent_amount: parseFloat(e.target.rent_amount.value),
+      amenities: selectedAmenities,
+      images: [e.target.image_url.value || 'https://images.unsplash.com/photo-1564013799919-ab600027ffc6?auto=format&fit=crop&w=800&q=80']
     };
     try {
       const response = await fetch(propertyApiUrl, {
@@ -463,33 +461,33 @@ function App() {
               {activeTab === 'bookings' && (
                 <div className="fade-in">
                   <div className="overview-grid" style={{ marginBottom: '2rem' }}>
-                      <div className="stat-card"><h4>{user.role === 'landlord' ? 'Tenant Requests' : 'Total Bookings'}</h4><div className="stat-value">{dashboardBookings.length}</div></div>
+                    <div className="stat-card"><h4>{user.role === 'landlord' ? 'Tenant Requests' : 'Total Bookings'}</h4><div className="stat-value">{dashboardBookings.length}</div></div>
                   </div>
                   <div className="table-container">
                     {dashboardBookings.length === 0 ? (
                       <div className="empty-state">{user.role === 'landlord' ? '📋 No booking requests yet. Tenants will appear here once they book your properties.' : '📅 No bookings found. Browse properties to get started!'}</div>
-                    ) : (                       <table className="data-table">
-                        <thead><tr>{user.role === 'landlord' && <th>Property ID</th>}<th>ID</th><th>Dates</th><th>Total</th><th>Status</th><th>Payment</th>{user.role === 'tenant' && <th>Action</th>}</tr></thead>
-                        <tbody>
-                          {dashboardBookings.map(b => (
-                            <tr key={b.id}>
-                              {user.role === 'landlord' && <td style={{fontSize:'0.75rem',color:'var(--text-muted)'}}>{(b.property_id||'').substring(0,8)}...</td>}
-                              <td>{b.id.substring(0, 6)}...</td>
-                              <td>{b.start_date} → {b.end_date}</td>
-                              <td><strong>${b.total_rent_due}</strong></td>
-                              <td><span className={`status-badge ${b.status === 'pending' ? 'warning' : 'success'}`}>{b.status}</span></td>
-                              <td><span className={`status-badge ${b.payment_status === 'pending' ? 'warning' : 'success'}`}>{b.payment_status}</span></td>
-                              {user.role === 'tenant' && (
-                                <td>
-                                  {b.payment_status === 'pending' && (
-                                    <button className="btn btn-pay" onClick={() => { setPendingBooking(b); setIsPaymentModalOpen(true); }}>Pay Now</button>
-                                  )}
-                                </td>
-                              )}
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
+                    ) : (<table className="data-table">
+                      <thead><tr>{user.role === 'landlord' && <th>Property ID</th>}<th>ID</th><th>Dates</th><th>Total</th><th>Status</th><th>Payment</th>{user.role === 'tenant' && <th>Action</th>}</tr></thead>
+                      <tbody>
+                        {dashboardBookings.map(b => (
+                          <tr key={b.id}>
+                            {user.role === 'landlord' && <td style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{(b.property_id || '').substring(0, 8)}...</td>}
+                            <td>{b.id.substring(0, 6)}...</td>
+                            <td>{b.start_date} → {b.end_date}</td>
+                            <td><strong>${b.total_rent_due}</strong></td>
+                            <td><span className={`status-badge ${b.status === 'pending' ? 'warning' : 'success'}`}>{b.status}</span></td>
+                            <td><span className={`status-badge ${b.payment_status === 'pending' ? 'warning' : 'success'}`}>{b.payment_status}</span></td>
+                            {user.role === 'tenant' && (
+                              <td>
+                                {b.payment_status === 'pending' && (
+                                  <button className="btn btn-pay" onClick={() => { setPendingBooking(b); setIsPaymentModalOpen(true); }}>Pay Now</button>
+                                )}
+                              </td>
+                            )}
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
                     )}
                   </div>
                 </div>
