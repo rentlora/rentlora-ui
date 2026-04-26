@@ -49,10 +49,12 @@ function App() {
 
   const [toast, setToast] = useState({ visible: false, message: '', type: 'success' });
 
-  const userApiUrl     = import.meta.env.VITE_USER_API_URL     || '/api/users';
-  const propertyApiUrl = import.meta.env.VITE_PROPERTY_API_URL || '/api/properties';
-  const bookingApiUrl  = import.meta.env.VITE_BOOKING_API_URL  || '/api/bookings';
-  const paymentApiUrl  = import.meta.env.VITE_PAYMENT_API_URL  || '/api/payments';
+  // All API calls use relative paths — KGateway handles routing.
+  // Never use absolute URLs here; they cause Mixed Content errors on HTTPS.
+  const userApiUrl     = '/api/users';
+  const propertyApiUrl = '/api/properties';
+  const bookingApiUrl  = '/api/bookings';
+  const paymentApiUrl  = '/api/payments';
 
   const showToast = (message, type = 'success') => {
     setToast({ visible: true, message, type });
