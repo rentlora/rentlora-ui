@@ -37,7 +37,7 @@ export default function ListingModal({
     showToast('✨ AI is writing your description...', 'success');
 
     try {
-      const aiApiUrl = import.meta.env.VITE_AI_API_URL || 'http://localhost:8005/api/ai';
+      const aiApiUrl = import.meta.env.VITE_AI_API_URL || '/api/ai';
       const response = await fetch(`${aiApiUrl}/describe`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

@@ -49,10 +49,10 @@ function App() {
 
   const [toast, setToast] = useState({ visible: false, message: '', type: 'success' });
 
-  const userApiUrl     = import.meta.env.VITE_USER_API_URL     || 'http://localhost:8001/api/users';
-  const propertyApiUrl = import.meta.env.VITE_PROPERTY_API_URL || 'http://localhost:8002/api/properties';
-  const bookingApiUrl  = import.meta.env.VITE_BOOKING_API_URL  || 'http://localhost:8003/api/bookings';
-  const paymentApiUrl  = import.meta.env.VITE_PAYMENT_API_URL  || 'http://localhost:8004/api/payments';
+  const userApiUrl     = import.meta.env.VITE_USER_API_URL     || '/api/users';
+  const propertyApiUrl = import.meta.env.VITE_PROPERTY_API_URL || '/api/properties';
+  const bookingApiUrl  = import.meta.env.VITE_BOOKING_API_URL  || '/api/bookings';
+  const paymentApiUrl  = import.meta.env.VITE_PAYMENT_API_URL  || '/api/payments';
 
   const showToast = (message, type = 'success') => {
     setToast({ visible: true, message, type });
